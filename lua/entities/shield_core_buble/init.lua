@@ -1,6 +1,6 @@
 --[[
 	Shield Core Buble
-	Copyright (C) 2011 Madman07
+	Copyright (C) 2011 Madman07 (Fixed and edited by Gabe)
 ]]--
 
 if (StarGate==nil or StarGate.CheckModule==nil or not StarGate.CheckModule("devices")) then return end
@@ -317,51 +317,62 @@ function ENT:PlayerPush(ply)
 end
 
 function ENT:IsEntOnBorder(ent, border)
-	local in_range = false;
-	local in_range2 = false;
+    if IsValid(ent) then
+        local in_range = false;
+        local in_range2 = false;
 
-	if (self.ShShap == 1) then
-		in_range = StarGate.IsInEllipsoid(ent:GetPos(), self.Entity, self.Size + border);
-		in_range2 = StarGate.IsInEllipsoid(ent:GetPos(), self.Entity, self.Size - border);
-	elseif (self.ShShap == 2) then
-		in_range = StarGate.IsInCuboid(ent:GetPos(), self.Entity, self.Size + border);
-		in_range2 = StarGate.IsInCuboid(ent:GetPos(), self.Entity, self.Size - border);
-	elseif (self.ShShap == 3) then
-		in_range = StarGate.IsInAltantisoid(ent:GetPos(), self.Entity, self.Size + border);
-		in_range2 = StarGate.IsInAltantisoid(ent:GetPos(), self.Entity, self.Size - border);
-	end
+        if (self.ShShap == 1) then
+            in_range = StarGate.IsInEllipsoid(ent:GetPos(), self.Entity, self.Size + border);
+            in_range2 = StarGate.IsInEllipsoid(ent:GetPos(), self.Entity, self.Size - border);
+        elseif (self.ShShap == 2) then
+            in_range = StarGate.IsInCuboid(ent:GetPos(), self.Entity, self.Size + border);
+            in_range2 = StarGate.IsInCuboid(ent:GetPos(), self.Entity, self.Size - border);
+        elseif (self.ShShap == 3) then
+            in_range = StarGate.IsInAltantisoid(ent:GetPos(), self.Entity, self.Size + border);
+            in_range2 = StarGate.IsInAltantisoid(ent:GetPos(), self.Entity, self.Size - border);
+        end
 
-	if in_range and not in_range2 then return true
-	else return false end
+        if in_range and not in_range2 then
+            return true
+        else
+            return false
+        end
+    else
+        return false
+    end
 end
 
 local function CalcDmgProtect(ent, inflictor, attacker, ammount, dmginfo)
-	if (IsValid(ent) and ent:IsPlayer()) then
-		if IsValid(inflictor) then
-			local class = inflictor:GetClass();
-			if (class == "tokra_shield" or class == "shield_core_buble") then
-				dmginfo:SetDamage(0);
-			end
+    if (IsValid(ent) and ent:IsPlayer()) then
+        if IsValid(inflictor) then
+            if IsValid(inflictor) and inflictor.GetClass then
+                local class = inflictor:GetClass();
+                if (class == "tokra_shield" or class == "shield_core_buble") then
+                    dmginfo:SetDamage(0);
+                end
 
-			local start = inflictor:LocalToWorld(inflictor:OBBCenter()) - inflictor:GetVelocity():GetNormal()*20; //move it a bit into attacker side (better protect for shield and staff)
-			local endpos = ent:LocalToWorld(ent:OBBCenter());
+                local start = inflictor:GetPos() - inflictor:GetVelocity():GetNormal() * 20; -- Modified this line as inflictor might not have OBBCenter()
+                local endpos = ent:GetPos();
 
-			debugoverlay.Line(start, endpos, 20, Color(255,255,255));
-			local dir2 = endpos - start;
+                debugoverlay.Line(start, endpos, 20, Color(255, 255, 255));
+                local dir2 = endpos - start;
 
-			local trace = StarGate.Trace:New(start,dir2,inflictor);
+                local trace = StarGate.Trace:New(start, dir2, inflictor);
 
-			if IsValid(trace.Entity) then
-				local class2 = trace.Entity:GetClass();
-				if (class2 == "shield_core_buble" or class2 == "tokra_shield") then
-					if(trace.Entity:Hit(attacker, trace.HitPos, dmginfo:GetDamage()*10, -1*trace.Normal)) then return end;
-				end
-				if (trace.Entity != ent) then
-					local dmg = 2-math.Clamp(start:Distance(endpos)/100, 0, 2);
-					dmginfo:SetDamage(dmg); //small damage relative to distance
-				end
-			end
-		end
-	end
+                if IsValid(trace.Entity) then
+                    local class2 = trace.Entity:GetClass();
+                    if (class2 == "shield_core_buble" or class2 == "tokra_shield") then
+                        if (trace.Entity:Hit(attacker, trace.HitPos, dmginfo:GetDamage() * 10, -1 * trace.Normal)) then
+                            return
+                        end;
+                    end
+                    if (trace.Entity != ent) then
+                        local dmg = 2 - math.Clamp(start:Distance(endpos) / 100, 0, 2);
+                        dmginfo:SetDamage(dmg); -- Small damage relative to distance
+                    end
+                end
+            end
+        end
+    end
 end
-hook.Add("EntityTakeDamage", "CAP.GlobalDamageProtect",CalcDmgProtect)
+hook.Add("EntityTakeDamage", "CAP.GlobalDamageProtect", CalcDmgProtect)
